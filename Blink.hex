@@ -1,0 +1,104 @@
+// Phase 2: Arduino Morse Code Transmitter with User Input
+// LED on Pin 13
+
+// Morse timing constants
+const int DOT = 200;      // 200ms
+const int DASH = 600;     // 600ms
+const int GAP_SYMBOL = 200;   // between dot/dash
+const int GAP_LETTER = 600;   // between letters
+const int GAP_WORD = 1400;    // between words
+
+int ledPin = 13;
+
+// Lookup table for A-Z and 0-9
+struct MorseMap {
+  char ch;
+  const char* code;
+};
+
+MorseMap morseTable[] = {
+  {'A', ".-"},   {'B', "-..."}, {'C', "-.-."}, {'D', "-.."},  {'E', "."},
+  {'F', "..-."}, {'G', "--."},  {'H', "...."}, {'I', ".."},   {'J', ".---"},
+  {'K', "-.-"},  {'L', ".-.."}, {'M', "--"},   {'N', "-."},   {'O', "---"},
+  {'P', ".--."}, {'Q', "--.-"}, {'R', ".-."},  {'S', "..."},  {'T', "-"},
+  {'U', "..-"},  {'V', "...-"}, {'W', ".--"},  {'X', "-..-"}, {'Y', "-.--"},
+  {'Z', "--.."},
+  {'0', "-----"}, {'1', ".----"}, {'2', "..---"}, {'3', "...--"}, {'4', "....-"},
+  {'5', "....."}, {'6', "-...."}, {'7', "--..."}, {'8', "---.."}, {'9', "----."}
+};
+
+int tableSize = sizeof(morseTable) / sizeof(MorseMap);
+
+// Function to find Morse code for a character
+const char* getMorse(char c) {
+  c = toupper(c);
+  for (int i = 0; i < tableSize; i++) {
+    if (morseTable[i].ch == c) return morseTable[i].code;
+  }
+  return "";  // unknown character
+}
+
+// Blink one symbol (dot or dash)
+void blinkSymbol(char symbol) {
+  digitalWrite(ledPin, HIGH);
+  if (symbol == '.') {
+    delay(DOT);
+  } else {
+    delay(DASH);
+  }
+  digitalWrite(ledPin, LOW);
+  delay(GAP_SYMBOL);
+}
+
+// Transmit a full Morse message
+void transmitText(String text) {
+  Serial.println("\nTransmitting: " + text);
+
+  for (int i = 0; i < text.length(); i++) {
+    char c = text[i];
+
+    // If space → word gap
+    if (c == ' ') {
+      delay(GAP_WORD);
+      Serial.println("(SPACE)");
+      continue;
+    }
+
+    const char* pattern = getMorse(c);
+
+    Serial.print(c);
+    Serial.print(": ");
+    Serial.println(pattern);
+
+    // Blink each symbol
+    for (int j = 0; pattern[j] != '\0'; j++) {
+      blinkSymbol(pattern[j]);
+    }
+
+    // Gap between letters
+    delay(GAP_LETTER);
+  }
+
+  Serial.println("Done!\n");
+}
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+  Serial.begin(9600);
+
+  Serial.println("Morse Code Transmitter Ready!");
+  Serial.println("Enter a message to transmit:");
+}
+
+void loop() {
+  if (Serial.available()) {
+    String msg = Serial.readStringUntil('\n');
+    msg.trim();
+
+    if (msg.length() > 0) {
+      transmitText(msg);
+    }
+    
+    Serial.println("Enter next message:");
+  }
+}
